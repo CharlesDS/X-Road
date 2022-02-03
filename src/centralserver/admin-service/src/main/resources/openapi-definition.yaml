@@ -336,8 +336,105 @@ paths:
           description: request specified an invalid format
         '500':
           description: internal server error
+  /management-requests:
+    get:
+      tags:
+        - management-requests
+      summary: List management requests
+      operationId: getManagementRequests
+      description: List management requests
+      responses:
+        '200':
+          description: array of management requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementRequestPage'
+        '400':
+          description: request was invalid
+        '401':
+          description: authentication credentials are missing
+        '403':
+          description: request has been refused
+        '404':
+          description: resource requested does not exists
+        '406':
+          description: request specified an invalid format
+        '500':
+          description: internal server error
+    post:
+      tags:
+        - management-requests
+      summary: Add a management request
+      operationId: addManagementRequest
+      description: Add management request
+      requestBody:
+        description: management request to add
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManagementRequest'
+      responses:
+        '200':
+          description: the added management request
+          content:
+            application/json:
+              schema:
+                type: integer
+                description: management request id
+        '400':
+          description: request was invalid
+        '401':
+          description: authentication credentials are missing
+        '403':
+          description: request has been refused
+        '404':
+          description: resource requested does not exists
+        '406':
+          description: request specified an invalid format
+        '500':
+          description: internal server error
+  /management-requests/{id}:
+    delete:
+      tags:
+        - management-requests
+      summary: Revoke/decline a management request
+      operationId: revokeManagementRequest
+      description: Administrator revokes a management request
+      parameters:
+        - in: path
+          name: id
+          description: request id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Revoke succeeded
+        '400':
+          description: request was invalid
+        '401':
+          description: authentication credentials are missing
+        '403':
+          description: request has been refused
+        '404':
+          description: resource requested does not exists
+        '406':
+          description: request specified an invalid format
+        '500':
+          description: internal server error
 components:
   schemas:
+    Page:
+      type: object
+      properties:
+        number:
+          type: integer
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
     InitializationStatus:
       type: object
       description: Initialization status of the Central Server
@@ -458,6 +555,85 @@ components:
           maxLength: 255
       required:
         - code
+    XRoadId:
+      type: object
+      x-abstract: true
+      description: X-Road identifier
+      discriminator:
+        propertyName: type
+        mapping:
+          MEMBER: "MemberId"
+          SECURITYSERVER: "SecurityServerId"
+      properties:
+        instanceId:
+          type: string
+        type:
+          type: string
+          format: enum
+          enum:
+            - MEMBER
+            - SECURITYSERVER
+    MemberId:
+      type: object
+      description: Member identifier
+      allOf:
+        - $ref: '#/components/schemas/XRoadId'
+      properties:
+        memberClass:
+          type: string
+        memberCode:
+          type: string
+    SecurityServerId:
+      allOf:
+        - $ref: '#/components/schemas/XRoadId'
+      type: object
+      properties:
+        memberClass:
+          type: string
+        memberCode:
+          type: string
+        serverCode:
+          type: string
+    ManagementRequest:
+      type: object
+      description: Management request
+      discriminator:
+        propertyName: requestType
+      properties:
+        securityserverId:
+          $ref: '#/components/schemas/SecurityServerId'
+        source:
+          type: string
+          description: request source
+          enum:
+            - CENTER
+            - SECURITY_SERVER
+      required:
+        - requestType
+        - source
+        - securityserverId
+    ManagementRequestPage:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Page'
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ManagementRequest'
+    AuthenticationCertificateRegistrationRequest:
+      allOf:
+        - $ref: '#/components/schemas/ManagementRequest'
+      type: object
+      properties:
+        serverAddress:
+          type: string
+        authenticationCertificate:
+          type: string
+          format: byte
+      required:
+        - serverAddres
+        - authencationCertificate
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
